@@ -1,0 +1,44 @@
+name: Build SSH Toolkit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install dependencies
+        run: |
+          go mod tidy
+
+      - name: Build Windows EXE
+        run: |
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ssh_toolkit.exe
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ssh_toolkit_386.exe -buildmode=exe
+          ls -la ssh_toolkit.exe
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssh_toolkit_windows
+          path: ssh_toolkit.exe
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: SSH Toolkit v1.0.${{ github.run_number }}
+          files: ssh_toolkit.exe
+          draft: false
+          prerelease: false
